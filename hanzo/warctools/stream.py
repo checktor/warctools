@@ -116,6 +116,24 @@ class RecordStream(object):
         while self.bytes_to_eoc > 0:
             read_size = min(CHUNK_SIZE, self.bytes_to_eoc)
             buf = self._read(read_size)
+            # It is possible that a WARC header is
+            # located within another WARC record's
+            # content. In this case, the current WARC
+            # record is clearly invalid and should
+            # be skipped.
+
+            # use hexadecimal number of backslash in ASCII
+            # table in order to create a "WARC\" pattern string
+            backslash = "\x2f"
+            pattern = bytes("WARC" + backslash, encoding="utf8")
+            if pattern in buf:
+                # there is another WARC header within
+                # current WARC content, therefore skip current
+                # record and jump directly to new header
+                index = buf.find(pattern)
+                offset = (len(buf) - index) + 1
+                self.fh.seek(-offset, self.fh.tell())
+                self.bytes_to_eoc = 0
             if len(buf) < read_size:
                 raise Exception('expected {} bytes but only read {}'.format(read_size, len(buf)))
 
@@ -255,4 +273,3 @@ class GzipFileStream(RecordStream):
             self.record_parser.parse(self, offset=None, line=line)
 
         return offset, record, errors
-

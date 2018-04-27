@@ -59,7 +59,7 @@ class WarcRecord(ArchiveRecord):
         content, which is a tuple (content_type, content_buffer), is provided,
         when writing the warc record, any Content-Type and Content-Length that
         appear in the supplied headers are ignored, and the values content[0]
-        and len(content[1]), respectively, are used. 
+        and len(content[1]), respectively, are used.
 
         When reading, the caller can stream content_file or use content, which is
         lazily filled using content_file, and after which content_file is
@@ -120,7 +120,7 @@ class WarcRecord(ArchiveRecord):
             out.write(nl) # end of header blank nl
             if content_buffer:
                 out.write(content_buffer)
-     
+
         # end of record nl nl
         out.write(nl)
         out.write(nl)
@@ -156,7 +156,7 @@ def rx(pat):
     """Helper to compile regexps with IGNORECASE option set."""
     return re.compile(pat, flags=re.IGNORECASE)
 
-version_rx = rx(br'^(?P<prefix>.*?)(?P<version>\s*WARC/(?P<number>.*?))'
+version_rx = rx(br'^(?P<prefix>.*?)(?P<version>\s*W?A?R?C?/(?P<number>.*?))'
                 b'(?P<nl>\r\n|\r|\n)\\Z')
 # a header is key: <ws> value plus any following lines with leading whitespace
 header_rx = rx(br'^(?P<name>.*?):\s?(?P<value>.*?)' b'(?P<nl>\r\n|\r|\n)\\Z')
@@ -220,7 +220,7 @@ class WarcParser(ArchiveParser):
 
             if match.group('number') not in self.KNOWN_VERSIONS:
                 record.error('version field is not known (%s)'
-                             % (",".join(self.KNOWN_VERSIONS)),
+                             % (",".join(str(v) for v in self.KNOWN_VERSIONS)),
                              match.group('number'))
 
             prefix = match.group('prefix')
@@ -275,7 +275,7 @@ class WarcParser(ArchiveParser):
             record.content_file = stream
             record.content_file.bytes_to_eoc = content_length
 
-            # check mandatory headers 
+            # check mandatory headers
             # WARC-Type WARC-Date WARC-Record-ID Content-Length
 
             return (record, (), offset)
