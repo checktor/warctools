@@ -122,17 +122,23 @@ class RecordStream(object):
             # record is clearly invalid and should
             # be skipped.
 
-            # use hexadecimal number of backslash in ASCII
-            # table in order to create a "WARC\" pattern string
+            # Search for "WARC\" pattern in buffer to find
+            # another WARC header within current content.
+            # Use hexadecimal number of backslash in ASCII
+            # table in order to create specified pattern string.
+
+            # TODO: Some HTML content, e.g. concerning WARC file
+            # specification, may contain "WARC\" pattern without
+            # indicating the begin of a new header.
             backslash = "\x2f"
             pattern = bytes("WARC" + backslash, encoding="utf8")
             if pattern in buf:
-                # there is another WARC header within
+                # there may be another WARC header within
                 # current WARC content, therefore skip current
                 # record and jump directly to new header
                 index = buf.find(pattern)
-                offset = (len(buf) - index) + 1
-                self.fh.seek(-offset, self.fh.tell())
+                offset = len(buf) - index
+                self.fh.seek(-offset, 1)
                 self.bytes_to_eoc = 0
             if len(buf) < read_size:
                 raise Exception('expected {} bytes but only read {}'.format(read_size, len(buf)))
