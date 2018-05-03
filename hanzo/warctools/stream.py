@@ -56,8 +56,8 @@ class RecordStream(object):
         # Number of bytes until the end of the record's content, if known.
         # Normally set by the record parser based on the Content-Length header.
         self.bytes_to_eoc = None
-        sekf.backslash = "\x2f"
-        sekf.pattern = bytes("WARC" + self.backslash, encoding="utf8")
+        self.backslash = "\x2f"
+        self.pattern = bytes("WARC" + self.backslash, encoding="utf8")
 
     def seek(self, offset, pos=0):
         """Same as a seek on a file"""
