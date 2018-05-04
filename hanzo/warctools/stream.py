@@ -97,9 +97,16 @@ class RecordStream(object):
         while True:
             offset = self.fh.tell() if offsets else None
             line = self.fh.readline()
-            if not re.match(br'^[\r\n]+$', line):
+            if not re.match(br'^[\r\n]+$', line) and b'WARC/' in line:
+                #print("FOUND LINE", line)
                 break
-
+        start_pattern = b'WARC/'
+        if line != b'WARC/1.0\r\n':
+            index = line.find(start_pattern)
+            local_offset = len(line) - index
+            self.fh.seek(-local_offset, 1)
+            line = self.fh.readline()
+            print("FIXED LINE {}".format(line))
         record, errors, offset = self.record_parser.parse(self, offset, line)
         return offset, record, errors
 
@@ -128,36 +135,6 @@ class RecordStream(object):
             result = self.fh.read(count)
         else:
             result = self.fh.read()
-
-        # It is possible that a WARC header is
-        # located within another WARC record's
-        # content. In this case, the current WARC
-        # record is clearly invalid and should
-        # be skipped.
-
-        # Search for "WARC\" pattern in buffer to find
-        # another WARC header within current content.
-        # Use hexadecimal number of backslash in ASCII
-        # table in order to create specified pattern string.
-
-        # TODO: Some HTML content, e.g. concerning WARC file
-        # specification, may contain "WARC\" pattern without
-        # indicating the begin of a new header.
-
-        if self.pattern in result:
-            # there is a WARC header within
-            # current WARC content, therefore skip current
-            # record and jump directly to new header
-            index = result.find(self.pattern)
-            offset = len(result) - index
-            self.fh.seek(-offset, 1)
-            # bytes_to_eoc is unknown from now on
-            self.bytes_to_eoc = None
-            print("ERROR: FOUND HEADER IN {}, JUMPING".format(offset))
-            if count is not None:
-                result = self.fh.read(count)
-            else:
-                result = self.fh.read()
             
         if self.bytes_to_eoc is not None:
             self.bytes_to_eoc -= len(result)
